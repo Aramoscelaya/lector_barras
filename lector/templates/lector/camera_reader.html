@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector de Código de Barras</title>
+</head>
+<body>
+    <h1>Lector de Código de Barras</h1>
+    <video id="video" width="300" height="200" autoplay></video>
+    <canvas id="canvas" width="300" height="200" style="display:none;"></canvas>
+    <button id="capture">Capturar Código de Barras</button>
+    <p id="result"></p>
+
+    <script>
+        // Acceso a la cámara
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const result = document.getElementById('result');
+        
+        // Pedir permisos para usar la cámara
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error al acceder a la cámara:", err);
+            });
+
+        // Capturar imagen y enviarla al servidor
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/png'); // Obtener la imagen en base64
+            
+            // Enviar al servidor
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `image=${encodeURIComponent(imageData)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    result.textContent = `Código de barras: ${data.barcode}`;
+                } else {
+                    result.textContent = data.message;
+                }
+            })
+            .catch(err => {
+                console.error("Error al enviar la imagen:", err);
+                result.textContent = "Error al procesar la imagen.";
+            });
+        });
+    </script>
+</body>
+</html>
